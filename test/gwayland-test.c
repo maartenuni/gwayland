@@ -17,7 +17,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <glib.h>
+#include "tests.h"
 
-#include <gwl-import.h>
-#include <gwl-display.h>
+int main(int argc, char **argv) {
 
+    g_test_init(&argc, &argv, NULL);
+
+    if (display_test())
+        return EXIT_FAILURE;
+
+    return g_test_run();
+}

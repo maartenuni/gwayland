@@ -17,7 +17,39 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef GWL_DISPLAY_H
+#define GWL_DISPLAY_H
 
-#include <gwl-import.h>
-#include <gwl-display.h>
+#include <glib-object.h>
+#include "gwl-import.h"
 
+G_BEGIN_DECLS
+
+#define GWL_TYPE_DISPLAY gwl_display_get_type()
+G_DECLARE_DERIVABLE_TYPE(GwlDisplay, gwl_display, GWL, DISPLAY, GObject)
+
+#define GWL_DISPLAY_ERROR gwl_display_error_quark()
+
+enum GwlDisplayError {
+    GWL_DISPLAY_ERROR_NO_CONNECTION /** no connection */
+};
+
+struct _GwlDisplayClass {
+    GObjectClass parent_class;
+
+    gpointer padding[16];
+};
+
+/*
+ * Method definitions
+ */
+
+GWL_PUBLIC GwlDisplay*
+gwl_display_new(GError** error);
+
+GWL_PUBLIC GwlDisplay*
+gwl_display_new_address(const gchar* server, GError** error);
+
+G_END_DECLS
+
+#endif

@@ -18,6 +18,4 @@
  */
 
 
-#include <gwl-import.h>
-#include <gwl-display.h>
-
+int display_test();
