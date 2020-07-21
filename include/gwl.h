@@ -20,4 +20,5 @@
 
 #include <gwl-import.h>
 #include <gwl-display.h>
+#include <gwl-registry.h>
 

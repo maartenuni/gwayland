@@ -17,17 +17,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <glib.h>
-#include "tests.h"
+#include "gwl-import.h"
+#include <gwl-registry.h>
+#include <wayland-client-protocol.h>
+#include <wayland-client.h>
 
-int main(int argc, char **argv) {
+G_BEGIN_DECLS
 
-    g_test_init(&argc, &argv, NULL);
+GWL_PUBLIC GwlRegistry*
+gwl_registry_new(struct wl_registry* registry);
 
-    if (display_test())
-        return EXIT_FAILURE;
-    if (registry_test())
-        return EXIT_FAILURE;
 
-    return g_test_run();
-}
+G_END_DECLS

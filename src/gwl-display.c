@@ -17,14 +17,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "gwl-display.h"
+#include <gwl-display.h>
+#include <gwl-registry.h>
+#include <gwl-registry-private.h>
 #include "glibconfig.h"
 #include <wayland-client-core.h>
+#include <wayland-client-protocol.h>
 #include <wayland-client.h>
 #include <errno.h>
 
 typedef struct {
-    struct wl_display* display;
+    struct wl_display*  display;
+    GwlRegistry*        registry;
+    GIOChannel*         io_channel;
 } GwlDisplayPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GwlDisplay, gwl_display, G_TYPE_OBJECT)
@@ -38,6 +43,17 @@ enum {
 };
 
 static GParamSpec * obj_properties[N_PROPERIES] = {NULL};
+
+static gboolean
+gwl_display_attach_to_main_loop(GwlDisplay* display, int connection_fd)
+{
+    GwlDisplayPrivate* priv = gwl_display_get_instance_private(display);
+    priv->io_channel = g_io_channel_unix_new(connection_fd);
+    if (priv->io_channel)
+        return TRUE;
+    else
+        return FALSE;
+}
 
 static void
 gwl_display_set_property(GObject        *object,
@@ -54,6 +70,16 @@ gwl_display_set_property(GObject        *object,
             {
                 const gchar* adress = g_value_get_string(value);
                 priv->display = wl_display_connect(adress);
+                if (!priv->display)
+                    return;
+                struct wl_registry* registry = wl_display_get_registry(
+                        priv->display
+                        );
+                priv->registry = gwl_registry_new(registry);
+                gwl_display_attach_to_main_loop(
+                        self,
+                        wl_display_get_fd(priv->display)
+                        );
             }
             break;
         default:
@@ -96,8 +122,14 @@ gwl_display_init(GwlDisplay* self)
 static void
 gwl_display_dispose(GObject* object)
 {
-    (void)object;
-    // here we should drop references on other gobjects.
+    g_assert(GWL_IS_DISPLAY(object));
+    GwlDisplayPrivate* priv = gwl_display_get_instance_private(
+            GWL_DISPLAY(object)
+            );
+    if (priv->registry)
+        g_object_unref(priv->registry);
+    if (priv->io_channel)
+        g_io_channel_unref(priv->io_channel);
 }
 
 static void
@@ -158,10 +190,17 @@ gwl_display_class_init(GwlDisplayClass* klass)
 /* ************** public functions ***************** */
 
 GwlDisplay*
-gwl_display_new(GError** error)
+gwl_display_new_address(const gchar* server_address, GError** error)
 {
-    GwlDisplay* ret = g_object_new(GWL_TYPE_DISPLAY, NULL);
+    GwlDisplay* ret;
 
+    g_return_val_if_fail(*error == NULL, NULL);
+    
+    ret = g_object_new(
+            GWL_TYPE_DISPLAY,
+            "server_address", server_address,
+            NULL
+            );
     int fd;
     g_object_get(G_OBJECT(ret),
             "fd", &fd,
@@ -183,29 +222,29 @@ gwl_display_new(GError** error)
 }
 
 GwlDisplay*
-gwl_display_new_address(const gchar* server_address, GError** error)
+gwl_display_new(GError** error)
 {
-    GwlDisplay* ret = g_object_new(
-            GWL_TYPE_DISPLAY,
-            "server_address", server_address,
-            NULL);
-    int fd;
-    g_object_get(G_OBJECT(ret),
-            "fd", &fd,
-            NULL
-            );
-
-    if (fd < 0) {
-        g_set_error(
-                error,
-                GWL_DISPLAY_ERROR,
-                GWL_DISPLAY_ERROR_NO_CONNECTION,
-                "Unable to connect to server: %s\n",
-                g_strerror(errno)
-                );
-        g_object_unref(G_OBJECT(ret));
-        return NULL;
-    }
-    return ret;
+    return gwl_display_new_address(NULL, error);
 }
 
+void
+gwl_display_round_trip (GwlDisplay* self)
+{
+    g_return_if_fail(GWL_IS_DISPLAY(self));
+
+    GwlDisplayPrivate* priv = gwl_display_get_instance_private(self);
+    wl_display_roundtrip(priv->display);
+}
+
+GwlRegistry*
+gwl_display_get_registry(
+        GwlDisplay* display
+        )
+{
+    GwlDisplayPrivate* priv;
+    g_return_val_if_fail(GWL_IS_DISPLAY(display), NULL);
+
+    priv = gwl_display_get_instance_private(display);
+
+    return priv->registry;
+}

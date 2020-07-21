@@ -21,6 +21,7 @@
 #define GWL_DISPLAY_H
 
 #include <glib-object.h>
+#include <gwl-registry.h>
 #include "gwl-import.h"
 
 G_BEGIN_DECLS
@@ -49,6 +50,12 @@ gwl_display_new(GError** error);
 
 GWL_PUBLIC GwlDisplay*
 gwl_display_new_address(const gchar* server, GError** error);
+
+GWL_PUBLIC void
+gwl_display_round_trip(GwlDisplay* display);
+
+GWL_PUBLIC GwlRegistry*
+gwl_display_get_registry(GwlDisplay* display);
 
 G_END_DECLS
 

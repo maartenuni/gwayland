@@ -17,17 +17,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <glib.h>
-#include "tests.h"
 
-int main(int argc, char **argv) {
+#ifndef GWL_REGISTRY_H
+#define GWL_REGISTRY_H
 
-    g_test_init(&argc, &argv, NULL);
+#include <glib-object.h>
+#include "gwl-import.h"
 
-    if (display_test())
-        return EXIT_FAILURE;
-    if (registry_test())
-        return EXIT_FAILURE;
+G_BEGIN_DECLS
 
-    return g_test_run();
-}
+#define GWL_TYPE_REGISTRY gwl_registry_get_type()
+G_DECLARE_DERIVABLE_TYPE(GwlRegistry, gwl_registry, GWL, REGISTRY, GObject)
+
+//#define GWL_REGISTRY_ERROR gwl_registry_error_quark()
+
+//enum GwlRegistryError {
+//    GWL_REGISTRY_ERROR_NO_CONNECTION /** no connection */
+//};
+
+struct _GwlRegistryClass {
+    GObjectClass parent_class;
+
+    gpointer padding[16];
+};
+
+G_END_DECLS
+
+#endif

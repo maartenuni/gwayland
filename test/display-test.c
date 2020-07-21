@@ -78,9 +78,9 @@ display_wrong_address()
 
 int display_test()
 {
-    g_test_add_func("/gdisplay/display_new", display_new);
-    g_test_add_func("/gdisplay/display_new_address", display_new_address);
-    g_test_add_func("/gdisplay/display_wrong_address", display_wrong_address);
+    g_test_add_func("/GwlDisplay/display_new", display_new);
+    g_test_add_func("/GwlDisplay/display_new_address", display_new_address);
+    g_test_add_func("/GwlDisplay/display_wrong_address", display_wrong_address);
 
     return 0;
 }

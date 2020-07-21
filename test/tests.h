@@ -19,3 +19,4 @@
 
 
 int display_test();
+int registry_test();
