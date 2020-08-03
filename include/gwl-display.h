@@ -46,10 +46,10 @@ struct _GwlDisplayClass {
  */
 
 GWL_PUBLIC GwlDisplay*
-gwl_display_new(GError** error);
+gwl_display_new(GMainLoop* loop, GError** error);
 
 GWL_PUBLIC GwlDisplay*
-gwl_display_new_address(const gchar* server, GError** error);
+gwl_display_new_address(GMainLoop* loop, const gchar* server, GError** error);
 
 GWL_PUBLIC void
 gwl_display_round_trip(GwlDisplay* display);

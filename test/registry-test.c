@@ -17,6 +17,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <math.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <syscall.h>
 #include <gwl-display.h>
 #include <gwl-registry.h>
 #include <glib.h>
@@ -26,6 +30,14 @@ typedef struct DisplayFixture {
     GError*     setup_error;
 } DisplayFixture;
 
+typedef struct DisplayLoopFixture {
+    GwlDisplay*   display;
+    GError*       setup_error;
+    GMainContext* context;
+    GMainLoop*    loop;
+    gboolean      killed;
+} DisplayLoopFixture;
+
 static void
 display_fixture_setup(DisplayFixture* fixture, gconstpointer null)
 {
@@ -33,7 +45,7 @@ display_fixture_setup(DisplayFixture* fixture, gconstpointer null)
     fixture->display = NULL;
     fixture->setup_error = NULL;
 
-    fixture->display = gwl_display_new(&fixture->setup_error);
+    fixture->display = gwl_display_new(NULL, &fixture->setup_error);
 }
 
 static void
@@ -47,12 +59,82 @@ display_fixture_teardown(DisplayFixture* fixture, gconstpointer null)
 }
 
 static void
+display_loop_fixture_setup(DisplayLoopFixture* fixture, gconstpointer null)
+{
+    (void) null;
+    fixture->display = NULL;
+    fixture->setup_error = NULL;
+    fixture->context = g_main_context_new();
+    fixture->loop = g_main_loop_new(fixture->context, FALSE);
+    fixture->killed = 0;
+
+    fixture->display = gwl_display_new(NULL, &fixture->setup_error);
+}
+
+static void
+display_loop_fixture_teardown(DisplayLoopFixture* fixture, gconstpointer null)
+{
+    (void) null;
+    if (fixture->loop)
+        g_main_loop_unref(fixture->loop);
+    if (fixture->context)
+        g_main_context_unref(fixture->context);
+    if (fixture->display)
+        g_object_unref(G_OBJECT(fixture->display));
+    if (fixture->setup_error)
+        g_error_free(fixture->setup_error);
+}
+
+static gboolean
+kill_loop(gpointer data)
+{
+    DisplayLoopFixture* fixture = data;
+    fixture->killed = TRUE;
+    g_main_loop_quit(fixture->loop);
+    return FALSE;
+}
+
+
+static void
 registry_from_display(DisplayFixture* fixture, gconstpointer null)
 {
     (void) null;
     GwlRegistry* registry = gwl_display_get_registry(fixture->display);
     g_assert_nonnull(registry);
     gwl_display_round_trip(fixture->display);
+}
+
+static void
+terminate_loop_on_signal(gpointer f)
+{
+    DisplayLoopFixture* fixture = f;
+    g_print("Terminating loop!\n");
+    g_main_loop_quit(fixture->loop);
+}
+
+static void
+registry_global_signal(DisplayLoopFixture* fixture, gconstpointer null)
+{
+    (void) null;
+    GwlRegistry* registry = gwl_display_get_registry(fixture->display);
+    g_assert(registry);
+    
+    gulong handler = g_signal_connect(
+            registry,
+            "global",
+            G_CALLBACK(terminate_loop_on_signal),
+            fixture
+            );
+    g_assert_cmpint(handler, >, 0);
+
+    GSource* source = g_timeout_source_new_seconds(1);
+    g_source_set_callback(source, kill_loop, fixture, NULL);
+    g_source_attach(source, fixture->context);
+
+    g_main_loop_run(fixture->loop);
+
+    g_assert_nonnull(registry);
+    g_assert_false(fixture->killed);
 }
 
 int registry_test()
@@ -64,6 +146,15 @@ int registry_test()
             registry_from_display,
             display_fixture_teardown
             );
+    
+    g_test_add("/GwlRegistry/signals_from_loop",
+            DisplayLoopFixture,
+            NULL,
+            display_loop_fixture_setup,
+            registry_global_signal,
+            display_loop_fixture_teardown
+            );
 
     return 0;    
 }
+

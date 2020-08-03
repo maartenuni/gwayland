@@ -45,10 +45,10 @@ subdir('test')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
-  name : 'GWayland',
-  filebase : 'gwayland',
-  description : 'Meson sample project.',
-  subdirs : 'gwayland',
-  libraries : gwayland_shared_lib,
-  version : '0.1',
+    name : 'GWayland',
+    filebase : 'gwayland',
+    description : 'Meson sample project.',
+    subdirs : 'gwayland',
+    libraries : gwayland_shared_lib,
+    version : '0.1',
 )

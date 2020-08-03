@@ -17,44 +17,37 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <syscall.h>
 #include <gwl-registry.h>
 #include <gwl-registry-private.h>
+#include <pthread.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
 GwlRegistry* global_registry = NULL;
 
-/* binding to the global registries */
+enum {
+    WL_COMPOSITOR,
+    WL_SHM,
+};
 
-static void
-registry_handle_global(
+static void registry_handle_global(
         void                   *data,
         struct wl_registry     *registry,
         uint32_t                name,
         const char             *interface,
         uint32_t                version
-        )
-{
-    GwlRegistry* reg = data;
-    (void) registry;
-
-    g_print("GwlRegistry %p finds interface: '%s', version: %d, name: %d\n",
-           (void*)reg, interface, version, name
-           );
-}
+        );
 
 static void
 registry_handle_global_remove(
         void                   *data,
         struct wl_registry     *registry,
         uint32_t                name
-        )
-{
-    // This space deliberately left blank
-    (void) data;
-    (void) registry;
-    (void) name;
-}
+        );
+
 
 static const struct wl_registry_listener
 registry_listener = {
@@ -72,11 +65,18 @@ G_DEFINE_TYPE_WITH_PRIVATE(GwlRegistry, gwl_registry, G_TYPE_OBJECT)
 //G_DEFINE_QUARK(gwl-registry-error-quark, gwl_registry_error)
 
 enum {
-    FIRST_PROPERTY,
-    N_PROPERIES
+    GLOBAL,
+    GLOBAL_REMOVE,
+    LAST_SIGNAL
 };
 
-static GParamSpec * obj_properties[N_PROPERIES] = {NULL};
+enum {
+    FIRST_PROPERTY,
+    N_PROPERTIES
+};
+
+static GParamSpec * obj_properties[N_PROPERTIES] = {NULL};
+static guint registry_signals[LAST_SIGNAL] = {0};
 
 static void
 gwl_registry_set_property(GObject        *object,
@@ -86,7 +86,9 @@ gwl_registry_set_property(GObject        *object,
                           )
 {
     GwlRegistry* self = GWL_REGISTRY(object);
-    GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
+    (void) self;
+    //GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
+    (void) value;
 
     switch(property_id) {
         default:
@@ -103,7 +105,10 @@ gwl_registry_get_property(GObject       *object,
                           )
 {
     GwlRegistry* self = GWL_REGISTRY(object);
-    GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
+    //GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
+    (void) value;
+    (void) self;
+
     switch(property_id) {
         default:
             G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -147,7 +152,21 @@ gwl_registry_class_init(GwlRegistryClass* klass)
     object_class->get_property  = gwl_registry_get_property;
 
     // g_object_class_install_properties(object_class, N_PROPERIES, obj_properties);
-    int install_properties_above;
+    registry_signals[GLOBAL] = g_signal_new(
+            "global",
+            G_TYPE_FROM_CLASS(klass),
+            G_SIGNAL_RUN_FIRST,
+            0,
+            NULL,
+            NULL,
+            NULL,
+            G_TYPE_NONE,
+            1,
+            G_TYPE_STRING
+            );
+    g_assert(registry_signals[GLOBAL] != 0);
+    //g_assert(registry_signals[GLOBAL_REMOVE] != 0);
+
 }
 
 /*
@@ -182,3 +201,45 @@ gwl_registry_new(struct wl_registry* registry)
 
 /** public API **/
 
+/* * Use the registry to bind the globals. * */
+
+static void
+registry_handle_global(
+        void                   *data,
+        struct wl_registry     *registry,
+        uint32_t                name,
+        const char             *interface,
+        uint32_t                version
+        )
+{
+    GwlRegistry* reg = data;
+    GwlRegistryPrivate* reg_priv;
+
+    g_return_if_fail(GWL_IS_REGISTRY(reg));
+
+    reg_priv = gwl_registry_get_instance_private(reg);
+    g_print("emitting signal\n");
+    g_signal_emit(reg, registry_signals[GLOBAL], 0, interface);
+
+    if (strcmp(interface, "wl_compositor") == 0) {
+        //GwlCompositor compositor = gwl_compositor_new(registry, name);
+        // emit signal that the compositor is added.
+    }
+    else if (strcmp(interface, "wl_shm") == 0) {
+        //GwlShm shared_mem = gwl_shm_new(registry, name);
+        // emit signal that the shm is added.
+    }
+}
+
+static void
+registry_handle_global_remove(
+        void                   *data,
+        struct wl_registry     *registry,
+        uint32_t                name
+        )
+{
+    // This space deliberately left blank
+    (void) data;
+    (void) registry;
+    (void) name;
+}

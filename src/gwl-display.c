@@ -29,7 +29,9 @@
 typedef struct {
     struct wl_display*  display;
     GwlRegistry*        registry;
+    GMainLoop*          loop;
     GIOChannel*         io_channel;
+    guint               source_id;
 } GwlDisplayPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GwlDisplay, gwl_display, G_TYPE_OBJECT)
@@ -45,14 +47,65 @@ enum {
 static GParamSpec * obj_properties[N_PROPERIES] = {NULL};
 
 static gboolean
-gwl_display_attach_to_main_loop(GwlDisplay* display, int connection_fd)
+gwl_display_process_events(
+        GIOChannel* channel,
+        GIOCondition event,
+        gpointer data
+        )
+{
+    (void) channel;
+    (void) event;
+    g_assert(event == G_IO_IN);
+    GwlDisplay* display = data;
+    GwlDisplayPrivate* priv;
+
+    g_return_val_if_fail(GWL_IS_DISPLAY(display), FALSE);
+
+    priv = gwl_display_get_instance_private(display);
+
+    wl_display_dispatch(priv->display);
+
+    return TRUE;
+}
+
+static gboolean
+gwl_display_attach_to_main_loop(GwlDisplay* display, GMainLoop* loop, int connection_fd)
 {
     GwlDisplayPrivate* priv = gwl_display_get_instance_private(display);
     priv->io_channel = g_io_channel_unix_new(connection_fd);
-    if (priv->io_channel)
-        return TRUE;
-    else
+    int source_id;
+    if (!priv->io_channel)
         return FALSE;
+    
+    GSource* source = g_io_create_watch(
+            priv->io_channel,
+            G_IO_IN
+            );
+    g_source_set_callback(
+            source,
+            (GSourceFunc)(&gwl_display_process_events),
+            display,
+            NULL
+            );
+    if (loop)
+        source_id = g_source_attach(source, g_main_loop_get_context(loop));
+    else
+        source_id = g_source_attach(source, NULL);
+
+    if (source_id)
+        priv->source_id = source_id;
+    else
+        goto fail;
+
+    return TRUE;
+
+fail:
+
+    g_source_destroy(source);
+    g_io_channel_unref(priv->io_channel);
+    priv->io_channel = NULL;
+
+    return FALSE;
 }
 
 static void
@@ -76,10 +129,6 @@ gwl_display_set_property(GObject        *object,
                         priv->display
                         );
                 priv->registry = gwl_registry_new(registry);
-                gwl_display_attach_to_main_loop(
-                        self,
-                        wl_display_get_fd(priv->display)
-                        );
             }
             break;
         default:
@@ -140,6 +189,10 @@ gwl_display_finalize(GObject* object)
             );
     if (priv->display)
         wl_display_disconnect(priv->display);
+    if (priv->source_id) {
+        g_source_remove(priv->source_id);
+        priv->source_id = 0;
+    }
 }
 
 static void
@@ -190,7 +243,7 @@ gwl_display_class_init(GwlDisplayClass* klass)
 /* ************** public functions ***************** */
 
 GwlDisplay*
-gwl_display_new_address(const gchar* server_address, GError** error)
+gwl_display_new_address(GMainLoop* loop, const gchar* server_address, GError** error)
 {
     GwlDisplay* ret;
 
@@ -218,13 +271,15 @@ gwl_display_new_address(const gchar* server_address, GError** error)
         g_object_unref(G_OBJECT(ret));
         return NULL;
     }
+
+    gwl_display_attach_to_main_loop(ret, loop, fd);
     return ret;
 }
 
 GwlDisplay*
-gwl_display_new(GError** error)
+gwl_display_new(GMainLoop* loop, GError** error)
 {
-    return gwl_display_new_address(NULL, error);
+    return gwl_display_new_address(loop, NULL, error);
 }
 
 void

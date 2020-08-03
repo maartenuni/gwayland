@@ -27,7 +27,7 @@ display_new()
 {
     GError* error = NULL;
     int fd = 0;
-    GwlDisplay* display = gwl_display_new(&error);
+    GwlDisplay* display = gwl_display_new(NULL, &error);
     g_assert_nonnull(display);
     g_assert_null(error);
 
@@ -46,7 +46,7 @@ display_new_address()
     GError* error = NULL;
     const char* address = "wayland-0";
     int fd = 0;
-    GwlDisplay* display = gwl_display_new_address(address, &error);
+    GwlDisplay* display = gwl_display_new_address(NULL, address, &error);
     g_assert_nonnull(display);
     g_assert_null(error);
 
@@ -68,7 +68,7 @@ display_wrong_address()
 
     g_snprintf(address, sizeof(address), "woopsie%d", random);
 
-    GwlDisplay* display = gwl_display_new_address(address, &error);
+    GwlDisplay* display = gwl_display_new_address(NULL, address, &error);
     g_assert_null(display);
     g_assert_nonnull(error);
 
