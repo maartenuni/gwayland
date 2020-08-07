@@ -27,6 +27,7 @@
 G_BEGIN_DECLS
 
 #define GWL_TYPE_REGISTRY gwl_registry_get_type()
+GWL_PUBLIC
 G_DECLARE_DERIVABLE_TYPE(GwlRegistry, gwl_registry, GWL, REGISTRY, GObject)
 
 //#define GWL_REGISTRY_ERROR gwl_registry_error_quark()

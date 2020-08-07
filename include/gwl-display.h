@@ -27,6 +27,7 @@
 G_BEGIN_DECLS
 
 #define GWL_TYPE_DISPLAY gwl_display_get_type()
+GWL_PUBLIC
 G_DECLARE_DERIVABLE_TYPE(GwlDisplay, gwl_display, GWL, DISPLAY, GObject)
 
 #define GWL_DISPLAY_ERROR gwl_display_error_quark()

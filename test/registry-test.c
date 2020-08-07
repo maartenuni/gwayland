@@ -117,7 +117,7 @@ registry_global_signal(DisplayLoopFixture* fixture, gconstpointer null)
 {
     (void) null;
     GwlRegistry* registry = gwl_display_get_registry(fixture->display);
-    g_assert(registry);
+    g_assert(GWL_IS_REGISTRY(registry));
     
     gulong handler = g_signal_connect(
             registry,
