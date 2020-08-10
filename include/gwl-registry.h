@@ -39,6 +39,9 @@ G_DECLARE_DERIVABLE_TYPE(GwlRegistry, gwl_registry, GWL, REGISTRY, GObject)
 struct _GwlRegistryClass {
     GObjectClass parent_class;
 
+    void (*event_global)(void);
+    void (*event_global_remove)(void);
+
     gpointer padding[16];
 };
 

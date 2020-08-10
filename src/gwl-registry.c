@@ -17,12 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <syscall.h>
 #include <gwl-registry.h>
 #include <gwl-registry-private.h>
-#include <pthread.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
@@ -128,6 +124,7 @@ gwl_registry_dispose(GObject* object)
 {
     (void)object;
     // here we should drop references on other gobjects.
+    G_OBJECT_CLASS(gwl_registry_parent_class)->dispose(object);
 }
 
 static void
@@ -138,7 +135,31 @@ gwl_registry_finalize(GObject* object)
             );
     if (priv->registry)
         wl_registry_destroy(priv->registry);
+
+    G_OBJECT_CLASS(gwl_registry_parent_class)->finalize(object);
 }
+
+static void
+gwl_registry_event_global(
+        GwlRegistry*        self,
+        struct wl_registry *registry,
+        guint32             name,
+        const char         *interface,
+        uint32_t            version
+        )
+{
+    g_debug("%s:%s:%d", __FILE__, __func__, __LINE__);
+}
+        
+static void
+gwl_registry_event_global_removed(
+        GwlRegistry*        self,
+        struct wl_registry *registry,
+        guint32             name
+        )
+{
+}
+
 
 static void
 gwl_registry_class_init(GwlRegistryClass* klass)
@@ -148,21 +169,27 @@ gwl_registry_class_init(GwlRegistryClass* klass)
     object_class->dispose       = gwl_registry_dispose;
     object_class->finalize      = gwl_registry_finalize;
     
-    object_class->set_property  = gwl_registry_set_property;
-    object_class->get_property  = gwl_registry_get_property;
+//    object_class->set_property  = gwl_registry_set_property;
+//    object_class->get_property  = gwl_registry_get_property;
+
+    klass->event_global         = G_CALLBACK(gwl_registry_event_global);
+    klass->event_global_remove  = G_CALLBACK(gwl_registry_event_global_removed);
 
     // g_object_class_install_properties(object_class, N_PROPERIES, obj_properties);
     registry_signals[GLOBAL] = g_signal_new(
-            "global",
+            "global-added",
             G_TYPE_FROM_CLASS(klass),
-            G_SIGNAL_RUN_FIRST,
-            0,
+            G_SIGNAL_RUN_LAST,
+            G_STRUCT_OFFSET(GwlRegistryClass, event_global),
             NULL,
             NULL,
             NULL,
             G_TYPE_NONE,
-            1,
-            G_TYPE_STRING
+            4,
+            G_TYPE_POINTER,
+            G_TYPE_UINT,
+            G_TYPE_STRING,
+            G_TYPE_UINT
             );
     g_assert(registry_signals[GLOBAL] != 0);
     //g_assert(registry_signals[GLOBAL_REMOVE] != 0);
@@ -215,18 +242,27 @@ registry_handle_global(
     GwlRegistry* reg = data;
     GwlRegistryPrivate* reg_priv;
 
-    g_return_if_fail(GWL_IS_REGISTRY(reg));
+    g_return_if_fail(GWL_IS_REGISTRY(reg) || G_IS_OBJECT(data));
 
     reg_priv = gwl_registry_get_instance_private(reg);
-    g_print("emitting signal\n");
-    g_signal_emit(reg, registry_signals[GLOBAL], 0, interface);
+    g_debug("emitting signal: %s interface", interface);
+    g_signal_emit(
+            reg, // instance
+            registry_signals[GLOBAL], // registered signal.
+            0, // GQuark
+            registry,   // the libwaylandclient registry instance
+            name,       // the name of the instance
+            interface,  // the name of the global.
+            version,    // the supported version
+            NULL
+            );
 
     if (strcmp(interface, "wl_compositor") == 0) {
-        //GwlCompositor compositor = gwl_compositor_new(registry, name);
+        // GwlCompositor compositor = gwl_compositor_new(registry, name);
         // emit signal that the compositor is added.
     }
     else if (strcmp(interface, "wl_shm") == 0) {
-        //GwlShm shared_mem = gwl_shm_new(registry, name);
+        // GwlShm shared_mem = gwl_shm_new(registry, name);
         // emit signal that the shm is added.
     }
 }

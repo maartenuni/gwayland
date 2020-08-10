@@ -25,18 +25,13 @@
 #include <gwl-registry.h>
 #include <glib.h>
 
+/* ************* Creating a registry via the display connection ****** */
+
 typedef struct DisplayFixture {
     GwlDisplay* display;
     GError*     setup_error;
 } DisplayFixture;
 
-typedef struct DisplayLoopFixture {
-    GwlDisplay*   display;
-    GError*       setup_error;
-    GMainContext* context;
-    GMainLoop*    loop;
-    gboolean      killed;
-} DisplayLoopFixture;
 
 static void
 display_fixture_setup(DisplayFixture* fixture, gconstpointer null)
@@ -57,6 +52,26 @@ display_fixture_teardown(DisplayFixture* fixture, gconstpointer null)
     if (fixture->setup_error)
         g_error_free(fixture->setup_error);
 }
+
+
+static void
+registry_from_display(DisplayFixture* fixture, gconstpointer null)
+{
+    (void) null;
+    GwlRegistry* registry = gwl_display_get_registry(fixture->display);
+    g_assert_nonnull(registry);
+    gwl_display_round_trip(fixture->display);
+}
+
+/* ****** Checking whether the mainloop works and signals are emitted ****** */
+
+typedef struct DisplayLoopFixture {
+    GwlDisplay*   display;
+    GError*       setup_error;
+    GMainContext* context;
+    GMainLoop*    loop;
+    gboolean      killed;
+} DisplayLoopFixture;
 
 static void
 display_loop_fixture_setup(DisplayLoopFixture* fixture, gconstpointer null)
@@ -86,26 +101,17 @@ display_loop_fixture_teardown(DisplayLoopFixture* fixture, gconstpointer null)
 }
 
 static gboolean
-kill_loop(gpointer data)
+timeout_terminate_loop(gpointer data)
 {
     DisplayLoopFixture* fixture = data;
+    // Mark the fixture to be killed via the time out.
     fixture->killed = TRUE;
     g_main_loop_quit(fixture->loop);
     return FALSE;
 }
 
-
 static void
-registry_from_display(DisplayFixture* fixture, gconstpointer null)
-{
-    (void) null;
-    GwlRegistry* registry = gwl_display_get_registry(fixture->display);
-    g_assert_nonnull(registry);
-    gwl_display_round_trip(fixture->display);
-}
-
-static void
-terminate_loop_on_signal(gpointer f)
+signal_terminate_loop(gpointer f)
 {
     DisplayLoopFixture* fixture = f;
     g_print("Terminating loop!\n");
@@ -117,23 +123,22 @@ registry_global_signal(DisplayLoopFixture* fixture, gconstpointer null)
 {
     (void) null;
     GwlRegistry* registry = gwl_display_get_registry(fixture->display);
-    g_assert(GWL_IS_REGISTRY(registry));
+    g_assert_true(GWL_IS_REGISTRY(registry));
     
     gulong handler = g_signal_connect(
             registry,
-            "global",
-            G_CALLBACK(terminate_loop_on_signal),
+            "global-added",
+            (GCallback) signal_terminate_loop,
             fixture
             );
     g_assert_cmpint(handler, >, 0);
 
     GSource* source = g_timeout_source_new_seconds(1);
-    g_source_set_callback(source, kill_loop, fixture, NULL);
+    g_source_set_callback(source, timeout_terminate_loop, fixture, NULL);
     g_source_attach(source, fixture->context);
 
     g_main_loop_run(fixture->loop);
 
-    g_assert_nonnull(registry);
     g_assert_false(fixture->killed);
 }
 
