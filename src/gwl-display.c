@@ -55,7 +55,7 @@ gwl_display_process_events(
 {
     (void) channel;
     (void) event;
-    g_assert(event == G_IO_IN);
+    g_assert(event == G_IO_IN || G_IO_OUT);
     GwlDisplay* display = data;
     GwlDisplayPrivate* priv;
 
@@ -63,7 +63,16 @@ gwl_display_process_events(
 
     priv = gwl_display_get_instance_private(display);
 
-    wl_display_dispatch(priv->display);
+    g_debug(
+        "Event & IN = %d\tEvent & OUT = %d",
+        event & G_IO_IN,
+        event & G_IO_OUT
+        );
+
+    if (event & G_IO_IN)
+        wl_display_dispatch(priv->display);
+    if (event & G_IO_OUT)
+        wl_display_flush(priv->display);
 
     return TRUE;
 }
@@ -79,7 +88,7 @@ gwl_display_attach_to_main_loop(GwlDisplay* display, GMainLoop* loop, int connec
     
     GSource* source = g_io_create_watch(
             priv->io_channel,
-            G_IO_IN
+            G_IO_IN | G_IO_OUT
             );
     g_source_set_callback(
             source,
@@ -87,6 +96,7 @@ gwl_display_attach_to_main_loop(GwlDisplay* display, GMainLoop* loop, int connec
             display,
             NULL
             );
+
     if (loop)
         source_id = g_source_attach(source, g_main_loop_get_context(loop));
     else
@@ -283,7 +293,7 @@ gwl_display_new(GMainLoop* loop, GError** error)
 }
 
 void
-gwl_display_round_trip (GwlDisplay* self)
+gwl_display_roundtrip (GwlDisplay* self)
 {
     g_return_if_fail(GWL_IS_DISPLAY(self));
 

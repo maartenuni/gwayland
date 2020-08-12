@@ -196,6 +196,8 @@ gwl_registry_class_init(GwlRegistryClass* klass)
 
 }
 
+/* * library private api * */
+
 /*
  * Install listener and callback's to obtain the globals.
  */
@@ -206,7 +208,6 @@ gwl_registry_bind_listener(GwlRegistry* self)
     wl_registry_add_listener(priv->registry, &registry_listener, self);
 }
 
-/* * library private api * */
 
 /**
  * @private
@@ -245,11 +246,10 @@ registry_handle_global(
     g_return_if_fail(GWL_IS_REGISTRY(reg) || G_IS_OBJECT(data));
 
     reg_priv = gwl_registry_get_instance_private(reg);
-    g_debug("emitting signal: %s interface", interface);
     g_signal_emit(
-            reg, // instance
+            reg,        // instance
             registry_signals[GLOBAL], // registered signal.
-            0, // GQuark
+            0,          // GQuark
             registry,   // the libwaylandclient registry instance
             name,       // the name of the instance
             interface,  // the name of the global.
@@ -257,11 +257,11 @@ registry_handle_global(
             NULL
             );
 
-    if (strcmp(interface, "wl_compositor") == 0) {
+    if (g_strcmp0(interface, "wl_compositor") == 0) {
         // GwlCompositor compositor = gwl_compositor_new(registry, name);
         // emit signal that the compositor is added.
     }
-    else if (strcmp(interface, "wl_shm") == 0) {
+    else if (g_strcmp0(interface, "wl_shm") == 0) {
         // GwlShm shared_mem = gwl_shm_new(registry, name);
         // emit signal that the shm is added.
     }

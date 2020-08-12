@@ -59,8 +59,8 @@ registry_from_display(DisplayFixture* fixture, gconstpointer null)
 {
     (void) null;
     GwlRegistry* registry = gwl_display_get_registry(fixture->display);
-    g_assert_nonnull(registry);
-    gwl_display_round_trip(fixture->display);
+    g_assert_true(GWL_IS_REGISTRY(registry));
+    gwl_display_roundtrip(fixture->display);
 }
 
 /* ****** Checking whether the mainloop works and signals are emitted ****** */
@@ -83,7 +83,7 @@ display_loop_fixture_setup(DisplayLoopFixture* fixture, gconstpointer null)
     fixture->loop = g_main_loop_new(fixture->context, FALSE);
     fixture->killed = 0;
 
-    fixture->display = gwl_display_new(NULL, &fixture->setup_error);
+    fixture->display = gwl_display_new(fixture->loop, &fixture->setup_error);
 }
 
 static void
@@ -114,7 +114,7 @@ static void
 signal_terminate_loop(gpointer f)
 {
     DisplayLoopFixture* fixture = f;
-    g_print("Terminating loop!\n");
+    g_print("Terminating loop, %p!\n", fixture->loop);
     g_main_loop_quit(fixture->loop);
 }
 
@@ -131,11 +131,15 @@ registry_global_signal(DisplayLoopFixture* fixture, gconstpointer null)
             (GCallback) signal_terminate_loop,
             fixture
             );
+    g_debug("Handler is %lu", handler);
     g_assert_cmpint(handler, >, 0);
 
     GSource* source = g_timeout_source_new_seconds(1);
     g_source_set_callback(source, timeout_terminate_loop, fixture, NULL);
     g_source_attach(source, fixture->context);
+
+    // This should occur from the mainloop.
+    // gwl_display_roundtrip(fixture->display);
 
     g_main_loop_run(fixture->loop);
 

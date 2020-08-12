@@ -53,7 +53,7 @@ GWL_PUBLIC GwlDisplay*
 gwl_display_new_address(GMainLoop* loop, const gchar* server, GError** error);
 
 GWL_PUBLIC void
-gwl_display_round_trip(GwlDisplay* display);
+gwl_display_roundtrip(GwlDisplay* display);
 
 GWL_PUBLIC GwlRegistry*
 gwl_display_get_registry(GwlDisplay* display);
