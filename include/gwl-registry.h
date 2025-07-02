@@ -14,15 +14,14 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
-
 
 #ifndef GWL_REGISTRY_H
 #define GWL_REGISTRY_H
 
-#include <glib-object.h>
 #include "gwl-import.h"
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
@@ -32,9 +31,9 @@ G_DECLARE_DERIVABLE_TYPE(GwlRegistry, gwl_registry, GWL, REGISTRY, GObject)
 
 //#define GWL_REGISTRY_ERROR gwl_registry_error_quark()
 
-//enum GwlRegistryError {
-//    GWL_REGISTRY_ERROR_NO_CONNECTION /** no connection */
-//};
+// enum GwlRegistryError {
+//     GWL_REGISTRY_ERROR_NO_CONNECTION /** no connection */
+// };
 
 struct _GwlRegistryClass {
     GObjectClass parent_class;

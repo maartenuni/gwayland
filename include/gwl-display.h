@@ -14,15 +14,15 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #ifndef GWL_DISPLAY_H
 #define GWL_DISPLAY_H
 
+#include "gwl-import.h"
 #include <glib-object.h>
 #include <gwl-registry.h>
-#include "gwl-import.h"
 
 G_BEGIN_DECLS
 
@@ -46,17 +46,17 @@ struct _GwlDisplayClass {
  * Method definitions
  */
 
-GWL_PUBLIC GwlDisplay*
-gwl_display_new(GMainLoop* loop, GError** error);
+GWL_PUBLIC GwlDisplay *
+gwl_display_new(GMainLoop *loop, GError **error);
 
-GWL_PUBLIC GwlDisplay*
-gwl_display_new_address(GMainLoop* loop, const gchar* server, GError** error);
+GWL_PUBLIC GwlDisplay *
+gwl_display_new_address(GMainLoop *loop, const gchar *server, GError **error);
 
 GWL_PUBLIC void
-gwl_display_roundtrip(GwlDisplay* display);
+gwl_display_roundtrip(GwlDisplay *display);
 
-GWL_PUBLIC GwlRegistry*
-gwl_display_get_registry(GwlDisplay* display);
+GWL_PUBLIC GwlRegistry *
+gwl_display_get_registry(GwlDisplay *display);
 
 G_END_DECLS
 

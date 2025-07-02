@@ -14,125 +14,111 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include <gwl-registry.h>
 #include <gwl-registry-private.h>
+#include <gwl-registry.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
-GwlRegistry* global_registry = NULL;
+GwlRegistry *global_registry = NULL;
 
 enum {
     WL_COMPOSITOR,
     WL_SHM,
 };
 
-static void registry_handle_global(
-        void                   *data,
-        struct wl_registry     *registry,
-        uint32_t                name,
-        const char             *interface,
-        uint32_t                version
-        );
+static void
+registry_handle_global(void               *data,
+                       struct wl_registry *registry,
+                       uint32_t            name,
+                       const char         *interface,
+                       uint32_t            version);
 
 static void
-registry_handle_global_remove(
-        void                   *data,
-        struct wl_registry     *registry,
-        uint32_t                name
-        );
+registry_handle_global_remove(void               *data,
+                              struct wl_registry *registry,
+                              uint32_t            name);
 
-
-static const struct wl_registry_listener
-registry_listener = {
-    .global = registry_handle_global,
+static const struct wl_registry_listener registry_listener = {
+    .global        = registry_handle_global,
     .global_remove = registry_handle_global_remove,
 };
 
 /* ********* implemenation of the gwl-registry object ************/
 
 typedef struct {
-    struct wl_registry* registry;
+    struct wl_registry *registry;
 } GwlRegistryPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(GwlRegistry, gwl_registry, G_TYPE_OBJECT)
-//G_DEFINE_QUARK(gwl-registry-error-quark, gwl_registry_error)
 
-enum {
-    GLOBAL,
-    GLOBAL_REMOVE,
-    LAST_SIGNAL
-};
+// G_DEFINE_QUARK(gwl-registry-error-quark, gwl_registry_error)
 
-enum {
-    FIRST_PROPERTY,
-    N_PROPERTIES
-};
+enum { GLOBAL, GLOBAL_REMOVE, LAST_SIGNAL };
 
-static GParamSpec * obj_properties[N_PROPERTIES] = {NULL};
-static guint registry_signals[LAST_SIGNAL] = {0};
+enum { FIRST_PROPERTY, N_PROPERTIES };
+
+static GParamSpec *obj_properties[N_PROPERTIES]  = {NULL};
+static guint       registry_signals[LAST_SIGNAL] = {0};
 
 static void
-gwl_registry_set_property(GObject        *object,
-                          guint           property_id,
-                          const GValue   *value,
-                          GParamSpec     *pspec
-                          )
+gwl_registry_set_property(GObject      *object,
+                          guint         property_id,
+                          const GValue *value,
+                          GParamSpec   *pspec)
 {
-    GwlRegistry* self = GWL_REGISTRY(object);
+    GwlRegistry *self = GWL_REGISTRY(object);
     (void) self;
-    //GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
+    // GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
     (void) value;
 
-    switch(property_id) {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-            break;
+    switch (property_id) {
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        break;
     }
 }
 
 static void
-gwl_registry_get_property(GObject       *object,
-                          guint          property_id,
-                          GValue        *value,
-                          GParamSpec    *pspec
-                          )
+gwl_registry_get_property(GObject    *object,
+                          guint       property_id,
+                          GValue     *value,
+                          GParamSpec *pspec)
 {
-    GwlRegistry* self = GWL_REGISTRY(object);
-    //GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
+    GwlRegistry *self = GWL_REGISTRY(object);
+    // GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
     (void) value;
     (void) self;
 
-    switch(property_id) {
-        default:
-            G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-            break;
+    switch (property_id) {
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+        break;
     }
 }
 
 static void
-gwl_registry_init(GwlRegistry* self)
+gwl_registry_init(GwlRegistry *self)
 {
     (void) self;
-    //everything is set to zero
+    // everything is set to zero
 }
 
 static void
-gwl_registry_dispose(GObject* object)
+gwl_registry_dispose(GObject *object)
 {
-    (void)object;
+    (void) object;
     // here we should drop references on other gobjects.
     G_OBJECT_CLASS(gwl_registry_parent_class)->dispose(object);
 }
 
 static void
-gwl_registry_finalize(GObject* object)
+gwl_registry_finalize(GObject *object)
 {
-    GwlRegistryPrivate* priv = gwl_registry_get_instance_private(
-            GWL_REGISTRY(object)
-            );
+    GwlRegistryPrivate *priv
+        = gwl_registry_get_instance_private(GWL_REGISTRY(object));
     if (priv->registry)
         wl_registry_destroy(priv->registry);
 
@@ -140,60 +126,54 @@ gwl_registry_finalize(GObject* object)
 }
 
 static void
-gwl_registry_event_global(
-        GwlRegistry*        self,
-        struct wl_registry *registry,
-        guint32             name,
-        const char         *interface,
-        uint32_t            version
-        )
+gwl_registry_event_global(GwlRegistry        *self,
+                          struct wl_registry *registry,
+                          guint32             name,
+                          const char         *interface,
+                          uint32_t            version)
 {
     g_debug("%s:%s:%d", __FILE__, __func__, __LINE__);
 }
-        
+
 static void
-gwl_registry_event_global_removed(
-        GwlRegistry*        self,
-        struct wl_registry *registry,
-        guint32             name
-        )
+gwl_registry_event_global_removed(GwlRegistry        *self,
+                                  struct wl_registry *registry,
+                                  guint32             name)
 {
 }
 
-
 static void
-gwl_registry_class_init(GwlRegistryClass* klass)
+gwl_registry_class_init(GwlRegistryClass *klass)
 {
-    GObjectClass* object_class = G_OBJECT_CLASS(klass);
+    GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-    object_class->dispose       = gwl_registry_dispose;
-    object_class->finalize      = gwl_registry_finalize;
-    
-//    object_class->set_property  = gwl_registry_set_property;
-//    object_class->get_property  = gwl_registry_get_property;
+    object_class->dispose  = gwl_registry_dispose;
+    object_class->finalize = gwl_registry_finalize;
 
-    klass->event_global         = G_CALLBACK(gwl_registry_event_global);
-    klass->event_global_remove  = G_CALLBACK(gwl_registry_event_global_removed);
+    //    object_class->set_property  = gwl_registry_set_property;
+    //    object_class->get_property  = gwl_registry_get_property;
 
-    // g_object_class_install_properties(object_class, N_PROPERIES, obj_properties);
-    registry_signals[GLOBAL] = g_signal_new(
-            "global-added",
-            G_TYPE_FROM_CLASS(klass),
-            G_SIGNAL_RUN_LAST,
-            G_STRUCT_OFFSET(GwlRegistryClass, event_global),
-            NULL,
-            NULL,
-            NULL,
-            G_TYPE_NONE,
-            4,
-            G_TYPE_POINTER,
-            G_TYPE_UINT,
-            G_TYPE_STRING,
-            G_TYPE_UINT
-            );
+    klass->event_global        = G_CALLBACK(gwl_registry_event_global);
+    klass->event_global_remove = G_CALLBACK(gwl_registry_event_global_removed);
+
+    // g_object_class_install_properties(object_class, N_PROPERIES,
+    // obj_properties);
+    registry_signals[GLOBAL]
+        = g_signal_new("global-added",
+                       G_TYPE_FROM_CLASS(klass),
+                       G_SIGNAL_RUN_LAST,
+                       G_STRUCT_OFFSET(GwlRegistryClass, event_global),
+                       NULL,
+                       NULL,
+                       NULL,
+                       G_TYPE_NONE,
+                       4,
+                       G_TYPE_POINTER,
+                       G_TYPE_UINT,
+                       G_TYPE_STRING,
+                       G_TYPE_UINT);
     g_assert(registry_signals[GLOBAL] != 0);
-    //g_assert(registry_signals[GLOBAL_REMOVE] != 0);
-
+    // g_assert(registry_signals[GLOBAL_REMOVE] != 0);
 }
 
 /* * library private api * */
@@ -202,12 +182,11 @@ gwl_registry_class_init(GwlRegistryClass* klass)
  * Install listener and callback's to obtain the globals.
  */
 static void
-gwl_registry_bind_listener(GwlRegistry* self)
+gwl_registry_bind_listener(GwlRegistry *self)
 {
-    GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
+    GwlRegistryPrivate *priv = gwl_registry_get_instance_private(self);
     wl_registry_add_listener(priv->registry, &registry_listener, self);
 }
-
 
 /**
  * @private
@@ -215,14 +194,14 @@ gwl_registry_bind_listener(GwlRegistry* self)
  * Called by GwlDisplay in order to obtain the wayland server globals
  *
  */
-GwlRegistry*
-gwl_registry_new(struct wl_registry* registry)
+GwlRegistry *
+gwl_registry_new(struct wl_registry *registry)
 {
-    GwlRegistry* ret = g_object_new(GWL_TYPE_REGISTRY, NULL);
+    GwlRegistry *ret = g_object_new(GWL_TYPE_REGISTRY, NULL);
     if (!ret)
         return ret;
-    GwlRegistryPrivate* priv = gwl_registry_get_instance_private(ret);
-    priv->registry = registry;
+    GwlRegistryPrivate *priv = gwl_registry_get_instance_private(ret);
+    priv->registry           = registry;
     gwl_registry_bind_listener(ret);
     return ret;
 }
@@ -232,30 +211,26 @@ gwl_registry_new(struct wl_registry* registry)
 /* * Use the registry to bind the globals. * */
 
 static void
-registry_handle_global(
-        void                   *data,
-        struct wl_registry     *registry,
-        uint32_t                name,
-        const char             *interface,
-        uint32_t                version
-        )
+registry_handle_global(void               *data,
+                       struct wl_registry *registry,
+                       uint32_t            name,
+                       const char         *interface,
+                       uint32_t            version)
 {
-    GwlRegistry* reg = data;
-    GwlRegistryPrivate* reg_priv;
+    GwlRegistry        *reg = data;
+    GwlRegistryPrivate *reg_priv;
 
     g_return_if_fail(GWL_IS_REGISTRY(reg) || G_IS_OBJECT(data));
 
     reg_priv = gwl_registry_get_instance_private(reg);
-    g_signal_emit(
-            reg,        // instance
-            registry_signals[GLOBAL], // registered signal.
-            0,          // GQuark
-            registry,   // the libwaylandclient registry instance
-            name,       // the name of the instance
-            interface,  // the name of the global.
-            version,    // the supported version
-            NULL
-            );
+    g_signal_emit(reg,                      // instance
+                  registry_signals[GLOBAL], // registered signal.
+                  0,                        // GQuark
+                  registry,  // the libwaylandclient registry instance
+                  name,      // the name of the instance
+                  interface, // the name of the global.
+                  version,   // the supported version
+                  NULL);
 
     if (g_strcmp0(interface, "wl_compositor") == 0) {
         // GwlCompositor compositor = gwl_compositor_new(registry, name);
@@ -268,11 +243,9 @@ registry_handle_global(
 }
 
 static void
-registry_handle_global_remove(
-        void                   *data,
-        struct wl_registry     *registry,
-        uint32_t                name
-        )
+registry_handle_global_remove(void               *data,
+                              struct wl_registry *registry,
+                              uint32_t            name)
 {
     // This space deliberately left blank
     (void) data;
