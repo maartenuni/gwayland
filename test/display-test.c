@@ -23,54 +23,53 @@
 #include <gwl-display.h>
 
 static void
-display_new()
+display_new(void)
 {
-    GError     *error   = NULL;
-    int         fd      = 0;
-    GwlDisplay *display = gwl_display_new(NULL, &error);
+    int         fd;
+    GwlDisplay *display = gwl_display_new(NULL);
     g_assert_nonnull(display);
-    g_assert_null(error);
 
     g_object_get(G_OBJECT(display), "fd", &fd, NULL);
-    g_assert_true(fd >= 0);
+    g_assert_cmpint(fd, >=, 0);
 
     g_object_unref(G_OBJECT(display));
 }
 
 static void
-display_new_address()
+display_new_address(void)
 {
-    GError     *error   = NULL;
     const char *address = "wayland-0";
     int         fd      = 0;
-    GwlDisplay *display = gwl_display_new_address(NULL, address, &error);
+
+    GwlDisplay *display = gwl_display_new(address);
     g_assert_nonnull(display);
-    g_assert_null(error);
 
     g_object_get(G_OBJECT(display), "fd", &fd, NULL);
-    g_assert_true(fd >= 0);
+    g_assert_cmpint(fd, >=, 0);
 
     g_object_unref(G_OBJECT(display));
 }
 
 static void
-display_wrong_address()
+display_wrong_address(void)
 {
-    GError *error = NULL;
-    char    address[1024];
-    int     random = g_test_rand_int();
+    char address[1024];
+    int  random = g_test_rand_int();
+    gint fd;
 
     g_snprintf(address, sizeof(address), "woopsie%d", random);
 
-    GwlDisplay *display = gwl_display_new_address(NULL, address, &error);
-    g_assert_null(display);
-    g_assert_nonnull(error);
+    GwlDisplay *display = gwl_display_new(address);
+    g_assert_false(gwl_display_get_connected(display));
 
-    g_error_free(error);
+    fd = gwl_display_get_fd(display);
+    g_assert_cmpint(fd, <, 0);
+
+    g_object_unref(display);
 }
 
 int
-display_test()
+display_test(void)
 {
     g_test_add_func("/GwlDisplay/display_new", display_new);
     g_test_add_func("/GwlDisplay/display_new_address", display_new_address);

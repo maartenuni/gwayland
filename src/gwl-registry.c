@@ -54,14 +54,12 @@ typedef struct {
 
 G_DEFINE_TYPE_WITH_PRIVATE(GwlRegistry, gwl_registry, G_TYPE_OBJECT)
 
-// G_DEFINE_QUARK(gwl-registry-error-quark, gwl_registry_error)
-
 enum { GLOBAL, GLOBAL_REMOVE, LAST_SIGNAL };
 
-enum { FIRST_PROPERTY, N_PROPERTIES };
+typedef enum { FIRST_PROPERTY, PROP_WL_PRIVATE, N_PROPERTIES } RegistryProperty;
 
-static GParamSpec *obj_properties[N_PROPERTIES]  = {NULL};
-static guint       registry_signals[LAST_SIGNAL] = {0};
+static GParamSpec *registry_properties[N_PROPERTIES] = {NULL};
+static guint       registry_signals[LAST_SIGNAL]     = {0};
 
 static void
 gwl_registry_set_property(GObject      *object,
@@ -69,12 +67,13 @@ gwl_registry_set_property(GObject      *object,
                           const GValue *value,
                           GParamSpec   *pspec)
 {
-    GwlRegistry *self = GWL_REGISTRY(object);
-    (void) self;
-    // GwlRegistryPrivate* priv = gwl_registry_get_instance_private(self);
-    (void) value;
+    GwlRegistry        *self = GWL_REGISTRY(object);
+    GwlRegistryPrivate *priv = gwl_registry_get_instance_private(self);
 
-    switch (property_id) {
+    switch ((RegistryProperty) property_id) {
+    case PROP_WL_PRIVATE:
+        priv->registry = g_value_get_pointer(value);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
         break;
@@ -119,8 +118,7 @@ gwl_registry_finalize(GObject *object)
 {
     GwlRegistryPrivate *priv
         = gwl_registry_get_instance_private(GWL_REGISTRY(object));
-    if (priv->registry)
-        wl_registry_destroy(priv->registry);
+    g_clear_pointer(&priv->registry, wl_registry_destroy);
 
     G_OBJECT_CLASS(gwl_registry_parent_class)->finalize(object);
 }
@@ -132,7 +130,17 @@ gwl_registry_event_global(GwlRegistry        *self,
                           const char         *interface,
                           uint32_t            version)
 {
-    g_debug("%s:%s:%d", __FILE__, __func__, __LINE__);
+    g_debug("%s:%s:%d - global interface registered: %s version %d",
+            __FILE__,
+            __func__,
+            __LINE__,
+            interface,
+            version);
+    g_assert(GWL_IS_REGISTRY(self));
+    (void) registry;
+    if (g_strcmp0(wl_shm_interface.name, interface) == 0) {
+        g_warning("Implement shared memory global");
+    }
 }
 
 static void
@@ -140,6 +148,9 @@ gwl_registry_event_global_removed(GwlRegistry        *self,
                                   struct wl_registry *registry,
                                   guint32             name)
 {
+    (void) self;
+    (void) registry;
+    (void) name;
 }
 
 static void
@@ -150,13 +161,28 @@ gwl_registry_class_init(GwlRegistryClass *klass)
     object_class->dispose  = gwl_registry_dispose;
     object_class->finalize = gwl_registry_finalize;
 
-    //    object_class->set_property  = gwl_registry_set_property;
-    //    object_class->get_property  = gwl_registry_get_property;
+    object_class->set_property = gwl_registry_set_property;
+    object_class->get_property = gwl_registry_get_property;
 
     klass->event_global        = G_CALLBACK(gwl_registry_event_global);
     klass->event_global_remove = G_CALLBACK(gwl_registry_event_global_removed);
 
-    // g_object_class_install_properties(object_class, N_PROPERIES,
+    /**
+     * GwlRegistry:wl-private:
+     *
+     * A pointer to the underlying libwayland client. This property must be
+     * set on construction.
+     */
+    registry_properties[PROP_WL_PRIVATE]
+        = g_param_spec_pointer("wl-private",
+                               "wl-private",
+                               "The private libwayland struct wl_registry "
+                               "pointer, must be set on construction",
+                               G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY);
+
+    g_object_class_install_properties(
+        object_class, N_PROPERTIES, registry_properties);
+
     // obj_properties);
     registry_signals[GLOBAL]
         = g_signal_new("global-added",
@@ -168,12 +194,10 @@ gwl_registry_class_init(GwlRegistryClass *klass)
                        NULL,
                        G_TYPE_NONE,
                        4,
-                       G_TYPE_POINTER,
-                       G_TYPE_UINT,
-                       G_TYPE_STRING,
-                       G_TYPE_UINT);
-    g_assert(registry_signals[GLOBAL] != 0);
-    // g_assert(registry_signals[GLOBAL_REMOVE] != 0);
+                       G_TYPE_OBJECT, // The object belonging to this class
+                       G_TYPE_UINT,   // The numeric name of the wayland object
+                       G_TYPE_STRING, // The name of the interface
+                       G_TYPE_UINT);  // version of the interface
 }
 
 /* * library private api * */
@@ -197,13 +221,9 @@ gwl_registry_bind_listener(GwlRegistry *self)
 GwlRegistry *
 gwl_registry_new(struct wl_registry *registry)
 {
-    GwlRegistry *ret = g_object_new(GWL_TYPE_REGISTRY, NULL);
-    if (!ret)
-        return ret;
-    GwlRegistryPrivate *priv = gwl_registry_get_instance_private(ret);
-    priv->registry           = registry;
-    gwl_registry_bind_listener(ret);
-    return ret;
+    g_return_val_if_fail(registry != NULL, NULL);
+
+    return g_object_new(GWL_TYPE_REGISTRY, "wl-private", registry, NULL);
 }
 
 /** public API **/
