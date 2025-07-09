@@ -19,7 +19,7 @@
 
 #include "gwl-import.h"
 #include <gwl-registry.h>
-#include <wayland-client-protocol.h>
+//#include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
 G_BEGIN_DECLS

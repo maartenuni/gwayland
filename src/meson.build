@@ -18,10 +18,11 @@
 #
 
 
-gwayland_srcs = [
+gwayland_srcs = files(
     'gwl-display.c',
     'gwl-registry.c',
-]
+    'gwl-object.c'
+)
 
 gwayland_shared_lib = shared_library(
     'gwayland',

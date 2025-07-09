@@ -21,23 +21,29 @@
 #define GWL_DISPLAY_H
 
 #include "gwl-import.h"
-#include <glib-object.h>
+#include "gwl-object.h"
 #include <gwl-registry.h>
 
 G_BEGIN_DECLS
 
 #define GWL_TYPE_DISPLAY gwl_display_get_type()
 GWL_PUBLIC
-G_DECLARE_DERIVABLE_TYPE(GwlDisplay, gwl_display, GWL, DISPLAY, GObject)
+G_DECLARE_DERIVABLE_TYPE(GwlDisplay, gwl_display, GWL, DISPLAY, GwlObject)
 
 #define GWL_DISPLAY_ERROR gwl_display_error_quark()
 
 enum GwlDisplayError {
-    GWL_DISPLAY_ERROR_NO_CONNECTION /** no connection */
+    GWL_DISPLAY_ERROR_NO_CONNECTION, /** no connection */
+    GWL_ERROR_FAILED,
 };
 
 struct _GwlDisplayClass {
-    GObjectClass parent_class;
+    GwlObjectClass parent_class;
+
+    void (*on_error)(GwlDisplay  *self,
+                     gpointer     object_id,
+                     guint        code,
+                     const gchar *message);
 
     gpointer padding[16];
 };
@@ -47,16 +53,22 @@ struct _GwlDisplayClass {
  */
 
 GWL_PUBLIC GwlDisplay *
-gwl_display_new(GMainLoop *loop, GError **error);
+gwl_display_new(const gchar *adress);
 
-GWL_PUBLIC GwlDisplay *
-gwl_display_new_address(GMainLoop *loop, const gchar *server, GError **error);
+GWL_PUBLIC gint
+gwl_display_get_fd(GwlDisplay *self);
+
+GWL_PUBLIC gboolean
+gwl_display_get_connected(GwlDisplay *self);
 
 GWL_PUBLIC void
-gwl_display_roundtrip(GwlDisplay *display);
+gwl_display_disconnect(GwlDisplay *self);
+
+GWL_PUBLIC gint
+gwl_display_roundtrip(GwlDisplay *self);
 
 GWL_PUBLIC GwlRegistry *
-gwl_display_get_registry(GwlDisplay *display);
+gwl_display_get_registry(GwlDisplay *self);
 
 G_END_DECLS
 
