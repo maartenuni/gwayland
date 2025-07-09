@@ -29,10 +29,10 @@ display_new(void)
     GwlDisplay *display = gwl_display_new(NULL);
     g_assert_nonnull(display);
 
-    g_object_get(G_OBJECT(display), "fd", &fd, NULL);
+    g_object_get(display, "fd", &fd, NULL);
     g_assert_cmpint(fd, >=, 0);
 
-    g_object_unref(G_OBJECT(display));
+    g_object_unref(display);
 }
 
 static void
@@ -44,10 +44,10 @@ display_new_address(void)
     GwlDisplay *display = gwl_display_new(address);
     g_assert_nonnull(display);
 
-    g_object_get(G_OBJECT(display), "fd", &fd, NULL);
+    g_object_get(display, "fd", &fd, NULL);
     g_assert_cmpint(fd, >=, 0);
 
-    g_object_unref(G_OBJECT(display));
+    g_object_unref(display);
 }
 
 static void

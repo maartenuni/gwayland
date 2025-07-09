@@ -43,14 +43,13 @@ struct wl_display_listener listener = {
 };
 
 typedef struct {
-    struct wl_display *display;
-    GwlRegistry       *registry;
-    GMainLoop         *loop;
-    GIOChannel        *io_channel;
-    guint              source_id;
+    GwlRegistry *registry;
+    GMainLoop   *loop;
+    GIOChannel  *io_channel;
+    guint        source_id;
 } GwlDisplayPrivate;
 
-G_DEFINE_TYPE_WITH_PRIVATE(GwlDisplay, gwl_display, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE(GwlDisplay, gwl_display, GWL_TYPE_OBJECT)
 
 // clang-format off
 G_DEFINE_QUARK(gwl-display-error-quark, gwl_display_error)
@@ -79,19 +78,18 @@ gwl_display_process_events(GIOChannel  *channel,
     (void) event;
     g_assert(event & G_IO_IN || event & G_IO_OUT);
     GwlDisplay        *display = data;
-    GwlDisplayPrivate *priv;
+    GwlObject         *gwlobj  = GWL_OBJECT(display);
+    struct wl_display *wl_disp = gwl_object_get(gwlobj);
 
     g_return_val_if_fail(GWL_IS_DISPLAY(display), FALSE);
-
-    priv = gwl_display_get_instance_private(display);
 
     g_debug(
         "Event & IN = %d\tEvent & OUT = %d", event & G_IO_IN, event & G_IO_OUT);
 
     if (event & G_IO_IN)
-        wl_display_dispatch(priv->display);
+        wl_display_dispatch(wl_disp);
     if (event & G_IO_OUT)
-        wl_display_flush(priv->display);
+        wl_display_flush(wl_disp);
 
     return TRUE;
 }
@@ -194,6 +192,8 @@ gwl_display_dispose(GObject *object)
     }
 
     g_clear_pointer(&priv->io_channel, g_io_channel_unref);
+
+    G_OBJECT_CLASS(gwl_display_parent_class)->dispose(object);
 }
 
 static void
@@ -206,6 +206,8 @@ gwl_display_finalize(GObject *object)
         g_source_remove(priv->source_id);
         priv->source_id = 0;
     }
+
+    G_OBJECT_CLASS(gwl_display_parent_class)->finalize(object);
 }
 
 static void
@@ -221,6 +223,12 @@ display_on_error(GwlDisplay  *self,
               message);
 }
 
+static GDestroyNotify
+display_get_cleanup_func(void)
+{
+    return (GDestroyNotify) wl_display_disconnect;
+}
+
 static void
 gwl_display_class_init(GwlDisplayClass *klass)
 {
@@ -231,6 +239,9 @@ gwl_display_class_init(GwlDisplayClass *klass)
 
     object_class->set_property = gwl_display_set_property;
     object_class->get_property = gwl_display_get_property;
+
+    GwlObjectClass *gwl_object_class   = GWL_OBJECT_CLASS(klass);
+    gwl_object_class->get_cleanup_func = display_get_cleanup_func;
 
     klass->on_error = display_on_error;
 
@@ -303,11 +314,9 @@ void
 gwl_display_disconnect(GwlDisplay *self)
 {
     g_return_if_fail(GWL_IS_DISPLAY(self));
-    GwlDisplayPrivate *priv = gwl_display_get_instance_private(self);
 
-    // TODO ("clear registry here");
-
-    g_clear_pointer(&priv->display, wl_display_disconnect);
+    // The GwlObject will call wl_display_disconnect on the wrapped instance
+    gwl_object_cleanup(GWL_OBJECT(self));
 }
 
 gint
@@ -317,18 +326,17 @@ gwl_display_get_fd(GwlDisplay *self)
     if (!gwl_display_get_connected(self))
         return -1;
 
-    GwlDisplayPrivate *priv = gwl_display_get_instance_private(self);
-
-    return wl_display_get_fd(priv->display);
+    return wl_display_get_fd(gwl_object_get(GWL_OBJECT(self)));
 }
 
 void
 gwl_display_set_fd(GwlDisplay *self, gint fd)
 {
     g_return_if_fail(GWL_IS_DISPLAY(self));
-    GwlDisplayPrivate *priv = gwl_display_get_instance_private(self);
 
-    priv->display = wl_display_connect_to_fd(fd);
+    struct wl_display *disp = wl_display_connect_to_fd(fd);
+
+    gwl_object_set(GWL_OBJECT(self), disp);
 }
 
 void
@@ -336,18 +344,17 @@ gwl_display_set_address(GwlDisplay *self, const gchar *address)
 {
     g_return_if_fail(GWL_IS_DISPLAY(self));
 
-    GwlDisplayPrivate *priv = gwl_display_get_instance_private(self);
+    struct wl_display *disp = wl_display_connect(address);
 
-    priv->display = wl_display_connect(address);
+    gwl_object_set(GWL_OBJECT(self), disp);
 }
 
 gboolean
 gwl_display_get_connected(GwlDisplay *self)
 {
     g_return_val_if_fail(GWL_IS_DISPLAY(self), FALSE);
-    GwlDisplayPrivate *priv = gwl_display_get_instance_private(self);
 
-    return priv->display != NULL;
+    return gwl_object_get(GWL_OBJECT(self)) != NULL;
 }
 
 gint
@@ -356,8 +363,7 @@ gwl_display_roundtrip(GwlDisplay *self)
     g_return_val_if_fail(GWL_IS_DISPLAY(self), -1);
     g_return_val_if_fail(gwl_display_get_connected(self), -1);
 
-    GwlDisplayPrivate *priv = gwl_display_get_instance_private(self);
-    return wl_display_roundtrip(priv->display);
+    return wl_display_roundtrip(gwl_object_get(GWL_OBJECT(self)));
 }
 
 /**
@@ -367,21 +373,22 @@ gwl_display_roundtrip(GwlDisplay *self)
  * obtain a reference to the existing instance. Wayland doesn't like
  * multiple registries to be created, hence you'll get a reference to the same
  * one each time.
- * This is the way to get a registry. Which mimmicks libwaylands way of
+ * This is the way to get a registry. Which mimics libwaylands way of
  * doing this.
  *
  * Returns:(transfer full): A reference to this displays registry.
  */
 GwlRegistry *
-gwl_display_get_registry(GwlDisplay *display)
+gwl_display_get_registry(GwlDisplay *self)
 {
     GwlDisplayPrivate *priv;
-    g_return_val_if_fail(GWL_IS_DISPLAY(display), NULL);
+    g_return_val_if_fail(GWL_IS_DISPLAY(self), NULL);
 
-    priv = gwl_display_get_instance_private(display);
+    priv = gwl_display_get_instance_private(self);
 
     if (!priv->registry) {
-        struct wl_registry *registry = wl_display_get_registry(priv->display);
+        struct wl_registry *registry
+            = wl_display_get_registry(gwl_object_get(GWL_OBJECT(self)));
         if (!registry)
             return NULL;
         priv->registry = gwl_registry_new(registry);

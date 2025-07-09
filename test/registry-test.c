@@ -58,6 +58,8 @@ registry_from_display(DisplayFixture *fixture, gconstpointer null)
     GwlRegistry *registry = gwl_display_get_registry(fixture->display);
     g_assert_true(GWL_IS_REGISTRY(registry));
     gwl_display_roundtrip(fixture->display);
+
+    g_object_unref(registry);
 }
 
 /* ****** Checking whether the mainloop works and signals are emitted ****** */

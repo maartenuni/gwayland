@@ -21,14 +21,14 @@
 #define GWL_DISPLAY_H
 
 #include "gwl-import.h"
-#include <glib-object.h>
+#include "gwl-object.h"
 #include <gwl-registry.h>
 
 G_BEGIN_DECLS
 
 #define GWL_TYPE_DISPLAY gwl_display_get_type()
 GWL_PUBLIC
-G_DECLARE_DERIVABLE_TYPE(GwlDisplay, gwl_display, GWL, DISPLAY, GObject)
+G_DECLARE_DERIVABLE_TYPE(GwlDisplay, gwl_display, GWL, DISPLAY, GwlObject)
 
 #define GWL_DISPLAY_ERROR gwl_display_error_quark()
 
@@ -38,7 +38,7 @@ enum GwlDisplayError {
 };
 
 struct _GwlDisplayClass {
-    GObjectClass parent_class;
+    GwlObjectClass parent_class;
 
     void (*on_error)(GwlDisplay  *self,
                      gpointer     object_id,

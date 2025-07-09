@@ -21,13 +21,15 @@
 #define GWL_REGISTRY_H
 
 #include "gwl-import.h"
+#include "gwl-object.h"
+
 #include <glib-object.h>
 
 G_BEGIN_DECLS
 
 #define GWL_TYPE_REGISTRY gwl_registry_get_type()
 GWL_PUBLIC
-G_DECLARE_DERIVABLE_TYPE(GwlRegistry, gwl_registry, GWL, REGISTRY, GObject)
+G_DECLARE_DERIVABLE_TYPE(GwlRegistry, gwl_registry, GWL, REGISTRY, GwlObject)
 
 //#define GWL_REGISTRY_ERROR gwl_registry_error_quark()
 
@@ -36,10 +38,15 @@ G_DECLARE_DERIVABLE_TYPE(GwlRegistry, gwl_registry, GWL, REGISTRY, GObject)
 // };
 
 struct _GwlRegistryClass {
-    GObjectClass parent_class;
+    GwlObjectClass parent_class;
 
-    void (*event_global)(void);
-    void (*event_global_remove)(void);
+    void (*event_global)(GwlRegistry *self,
+                         GwlObject   *object,
+                         guint        name,
+                         const gchar *interface_name,
+                         guint        version);
+
+    void (*event_global_remove)(GwlRegistry *self, guint name);
 
     gpointer padding[16];
 };
