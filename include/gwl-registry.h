@@ -17,11 +17,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#ifndef GWL_REGISTRY_H
-#define GWL_REGISTRY_H
+#pragma once
 
 #include "gwl-import.h"
 #include "gwl-object.h"
+#include "gwl-shm.h"
 
 #include <glib-object.h>
 
@@ -51,6 +51,7 @@ struct _GwlRegistryClass {
     gpointer padding[16];
 };
 
-G_END_DECLS
+GWL_PUBLIC GwlShm *
+gwl_registry_get_shm(GwlRegistry *self);
 
-#endif
+G_END_DECLS

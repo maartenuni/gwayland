@@ -1,6 +1,6 @@
 /*
  * GWayland library gobject wrappers around waylandclient library.
- * Copyright (C) 2020 Maarten Duijndam
+ * Copyright (C) 2025 Maarten Duijndam
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,22 +17,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include "tests.h"
 #include <glib.h>
-#include <stdlib.h>
+#include <gwl.h>
 
-int
-main(int argc, char **argv)
-{
+typedef struct DisplayRegistryFixture {
+    GwlDisplay  *display;
+    GwlRegistry *registry;
+} DisplayRegistryFixture;
 
-    g_test_init(&argc, &argv, NULL);
+void
+display_registry_fixture_setup(DisplayRegistryFixture *fixture,
+                               gconstpointer           null);
 
-    if (display_test())
-        return EXIT_FAILURE;
-    if (registry_test())
-        return EXIT_FAILURE;
-    if (shm_test())
-        return EXIT_FAILURE;
-
-    return g_test_run();
-}
+void
+display_registry_fixture_teardown(DisplayRegistryFixture *fixture,
+                                  gconstpointer           null);

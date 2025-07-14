@@ -17,15 +17,22 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-inst_headers = [
+public_headers = files(
     'gwl.h',
+    'gwl-compositor.h',
+    'gwl-enums.h',
     'gwl-display.h',
     'gwl-import.h',
     'gwl-registry.h',
-]
+    'gwl-shm.h',
+    'gwl-surface.h',
+)
 
-private_headers = [
-    'gwl-registry-private.h'
-]
+private_headers = files(
+    'gwl-registry-private.h',
+    'gwl-compositor-private.h',
+    'gwl-shm-private.h',
+    'gwl-surface-private.h',
+)
 
-install_headers(inst_headers, subdir : 'gwayland')
+install_headers(public_headers, subdir : 'gwayland')
