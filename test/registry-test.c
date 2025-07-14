@@ -20,10 +20,9 @@
 #include <glib.h>
 #include <gwl-display.h>
 #include <gwl-registry.h>
-#include <math.h>
-#include <sys/syscall.h>
-#include <syscall.h>
-#include <unistd.h>
+#include <gwl-shm.h>
+
+#include <wayland-client-protocol.h>
 
 /* ************* Creating a registry via the display connection ****** */
 
@@ -59,6 +58,64 @@ registry_from_display(DisplayFixture *fixture, gconstpointer null)
     g_assert_true(GWL_IS_REGISTRY(registry));
     gwl_display_roundtrip(fixture->display);
 
+    g_object_unref(registry);
+}
+
+static void
+on_get_globals_global(GwlRegistry *registry,
+                      GwlObject   *obj,
+                      guint        name,
+                      const gchar *interface,
+                      guint        version,
+                      gpointer     data)
+{
+    (void) name;
+    (void) version;
+    int *num_globals = data;
+
+    g_assert_true(GWL_IS_REGISTRY(registry));
+
+    if (g_strcmp0(interface, wl_shm_interface.name) == 0) {
+        g_assert_true(GWL_IS_SHM(obj));
+        *num_globals += 1;
+    }
+}
+
+static void
+registry_get_globals(DisplayFixture *fixture, gconstpointer null)
+{
+    (void) null;
+    int          num_globals = 0;
+    GwlRegistry *registry    = gwl_display_get_registry(fixture->display);
+
+    g_signal_connect(
+        registry, "global", G_CALLBACK(on_get_globals_global), &num_globals);
+
+    gwl_display_roundtrip(fixture->display); // Dispatch events in queue
+
+    g_object_unref(registry);
+
+    g_assert_cmpint(num_globals, >, 0);
+}
+
+static void
+registry_get_global_instance(DisplayFixture *fixture, gconstpointer null)
+{
+    (void) null;
+    GwlShm      *shm      = NULL;
+    GwlRegistry *registry = gwl_display_get_registry(fixture->display);
+
+    gwl_display_roundtrip(fixture->display); // Dispatch events in queue
+
+    g_object_get(registry, "shm", &shm, NULL);
+
+    g_assert_nonnull(shm);
+    g_assert_true(GWL_IS_SHM(shm));
+
+    // Both we and the registry has a reference.
+    g_assert_cmpint(G_OBJECT(shm)->ref_count, ==, 2);
+
+    g_object_unref(shm);
     g_object_unref(registry);
 }
 
@@ -153,6 +210,20 @@ registry_test(void)
                NULL,
                display_fixture_setup,
                registry_from_display,
+               display_fixture_teardown);
+
+    g_test_add("/GwlRegistry/get_globals",
+               DisplayFixture,
+               NULL,
+               display_fixture_setup,
+               registry_get_globals,
+               display_fixture_teardown);
+
+    g_test_add("/GwlRegistry/get_global_instance",
+               DisplayFixture,
+               NULL,
+               display_fixture_setup,
+               registry_get_global_instance,
                display_fixture_teardown);
 
     //     g_test_add("/GwlRegistry/signals_from_loop",

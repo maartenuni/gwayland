@@ -1,6 +1,6 @@
 /*
  * GWayland library gobject wrappers around waylandclient library.
- * Copyright (C) 2020 Maarten Duijndam
+ * Copyright (C) 2025 Maarten Duijndam
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,22 +17,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include "tests.h"
-#include <glib.h>
-#include <stdlib.h>
+#pragma once
 
-int
-main(int argc, char **argv)
-{
+#include <wayland-client.h>
 
-    g_test_init(&argc, &argv, NULL);
+#include "gwl-surface.h"
 
-    if (display_test())
-        return EXIT_FAILURE;
-    if (registry_test())
-        return EXIT_FAILURE;
-    if (shm_test())
-        return EXIT_FAILURE;
+G_BEGIN_DECLS
 
-    return g_test_run();
-}
+GwlSurface *
+gwl_surface_new(struct wl_surface *surface);
+
+G_END_DECLS

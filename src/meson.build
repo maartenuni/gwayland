@@ -17,20 +17,29 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
+enum_files = gnome.mkenums_simple (
+    'gwl-enum-types',
+    header_prefix: '#include "gwl-import.h"',
+    decorator: 'GWL_PUBLIC',
+    sources: public_headers,
+)
 
 gwayland_srcs = files(
     'gwl-display.c',
+    'gwl-compositor.c',
+    'gwl-object.c',
     'gwl-registry.c',
-    'gwl-object.c'
+    'gwl-shm.c',
+    'gwl-surface.c',
 )
 
 gwayland_shared_lib = shared_library(
     'gwayland',
-    gwayland_srcs,
+    gwayland_srcs + enum_files,
     install : true,
     c_args : lib_args,
     gnu_symbol_visibility : 'hidden',
-    include_directories : '../include',
+    include_directories : ['../include', '.', '../src'],
     dependencies : [glib_dep, gobject_dep, wayland_dep],
 )
 

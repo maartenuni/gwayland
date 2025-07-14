@@ -17,12 +17,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 
-test_sources = [
+test_sources = files([
     'gwayland-test.c',
     'tests.h',
+    'fixtures.c',
     'display-test.c',
     'registry-test.c',
-]
+    'shm-test.c',
+])
 
 test_deps = [glib_dep, wayland_dep]
 
@@ -30,7 +32,7 @@ test_exe = executable(
     'gwayland_test',
     test_sources,
     dependencies: gwayland_dep,
-#    link_with : gwayland_shared_lib
+    include_directories: include_directories('../src/'),
 )
 
 test(
@@ -39,6 +41,7 @@ test(
     env : [
         'G_TEST_SRCDIR=@0@'.format(meson.current_source_dir()),
         'G_TEST_BUILDDIR=@0@'.format(meson.current_source_dir())
-    ]
+    ],
+    protocol: 'tap'
 )
 

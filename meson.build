@@ -27,12 +27,14 @@ glib_dep = dependency('glib-2.0')
 gobject_dep = dependency('gobject-2.0')
 wayland_dep = dependency('wayland-client')
 
+gnome = import ('gnome')
+
 # These arguments are only used to build the shared library
 # not the executables that use the library.
 lib_args = ['-DBUILDING_GWL']
 
-subdir('src')
 subdir('include')
+subdir('src')
 
 # Make this library usable as a Meson subproject.
 gwayland_dep = declare_dependency(

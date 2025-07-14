@@ -19,11 +19,12 @@
 
 #include <errno.h>
 #include <gwl-display.h>
-#include <gwl-registry-private.h>
-#include <gwl-registry.h>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
+
+// The private headers should include the public.
+#include "gwl-registry-private.h"
 
 static void
 gwl_display_set_address(GwlDisplay *self, const gchar *address);

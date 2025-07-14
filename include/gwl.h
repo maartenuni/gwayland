@@ -17,6 +17,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#pragma once
+
+#include <gwl-compositor.h>
 #include <gwl-display.h>
+#include <gwl-enum-types.h>
+#include <gwl-enums.h>
 #include <gwl-import.h>
 #include <gwl-registry.h>
+#include <gwl-shm.h>
