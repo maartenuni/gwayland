@@ -20,11 +20,12 @@
 project(
     'GWayland', 'c',
     version : '0.1',
-    default_options : ['warning_level=3']
+    default_options : ['warning_level=3','b_ndebug=if-release']
 )
 
 glib_dep = dependency('glib-2.0')
 gobject_dep = dependency('gobject-2.0')
+gio_dep = dependency('gio-2.0')
 wayland_dep = dependency('wayland-client')
 
 gnome = import ('gnome')
@@ -49,7 +50,7 @@ pkg_mod = import('pkgconfig')
 pkg_mod.generate(
     name : 'GWayland',
     filebase : 'gwayland',
-    description : 'Meson sample project.',
+    description : 'GObject binding around the wayland-client library.',
     subdirs : 'gwayland',
     libraries : gwayland_shared_lib,
     version : '0.1',

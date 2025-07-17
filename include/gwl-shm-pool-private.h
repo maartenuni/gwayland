@@ -19,35 +19,13 @@
 
 #pragma once
 
-#include "gwl-import.h"
-#include "gwl-object.h"
-#include "gwl-shm-pool.h"
+#include <wayland-client.h>
 
-#include <glib-object.h>
-#include <gwl-enums.h>
+#include "gwl-shm-pool.h"
 
 G_BEGIN_DECLS
 
-#define GWL_TYPE_SHM gwl_shm_get_type()
-GWL_PUBLIC
-G_DECLARE_DERIVABLE_TYPE(GwlShm, gwl_shm, GWL, SHM, GwlObject)
-
-struct _GwlShmClass {
-    GwlObjectClass parent_class;
-
-    void (*format)(GwlShm *self, GwlShmFormat format);
-
-    gpointer padding[16];
-};
-
-GWL_PUBLIC GwlShmPool *
-gwl_shm_create_pool(GwlShm *self, gint size);
-
-GWL_PUBLIC GwlShmPool *
-gwl_shm_pool_new_full(GwlShm      *self,
-                      gint         width,
-                      gint         height,
-                      GwlShmFormat format,
-                      gint         num_frames);
+GwlShmPool *
+gwl_shm_pool_new(struct wl_shm_pool *pool, gint size);
 
 G_END_DECLS

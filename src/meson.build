@@ -30,6 +30,7 @@ gwayland_srcs = files(
     'gwl-object.c',
     'gwl-registry.c',
     'gwl-shm.c',
+    'gwl-shm-pool.c',
     'gwl-surface.c',
 )
 
@@ -40,6 +41,6 @@ gwayland_shared_lib = shared_library(
     c_args : lib_args,
     gnu_symbol_visibility : 'hidden',
     include_directories : ['../include', '.', '../src'],
-    dependencies : [glib_dep, gobject_dep, wayland_dep],
+    dependencies : [glib_dep, gobject_dep, gio_dep, wayland_dep],
 )
 

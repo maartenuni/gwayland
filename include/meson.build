@@ -25,6 +25,7 @@ public_headers = files(
     'gwl-import.h',
     'gwl-registry.h',
     'gwl-shm.h',
+    'gwl-shm-pool.h',
     'gwl-surface.h',
 )
 
@@ -32,6 +33,7 @@ private_headers = files(
     'gwl-registry-private.h',
     'gwl-compositor-private.h',
     'gwl-shm-private.h',
+    'gwl-shm-pool-private.h',
     'gwl-surface-private.h',
 )
 

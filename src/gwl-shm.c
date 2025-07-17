@@ -17,14 +17,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#include <gwl-object.h>
-#include <gwl-shm-private.h>
-#include <gwl-shm.h>
-#include <wayland-client-protocol.h>
-#include <wayland-client.h>
-
+#include <fcntl.h>
 #include <gwl-enum-types.h>
 #include <gwl-enums.h>
+#include <gwl-object.h>
+#include <gwl-shm-pool-private.h>
+#include <gwl-shm-private.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <wayland-client-protocol.h>
+#include <wayland-client.h>
 
 /* ********* implementation of the gwl-shm object ************/
 
@@ -40,43 +42,7 @@ enum { SIG_FORMAT, LAST_SIGNAL };
 
 typedef enum { FIRST_PROPERTY, N_PROPERTIES } ShmProperty;
 
-static GParamSpec *shm_properties[N_PROPERTIES] = {NULL};
-static guint       shm_signals[LAST_SIGNAL]     = {0};
-
-static void
-gwl_shm_set_property(GObject      *object,
-                     guint         property_id,
-                     const GValue *value,
-                     GParamSpec   *pspec)
-{
-    // GwlShm *self = GWL_SHM(object);
-    //  GwlShmPrivate *priv = gwl_shm_get_instance_private(self);
-    (void) value;
-
-    switch ((ShmProperty) property_id) {
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-        break;
-    }
-}
-
-static void
-gwl_shm_get_property(GObject    *object,
-                     guint       property_id,
-                     GValue     *value,
-                     GParamSpec *pspec)
-{
-    GwlShm *self = GWL_SHM(object);
-    // GwlShmPrivate* priv = gwl_shm_get_instance_private(self);
-    (void) value;
-    (void) self;
-
-    switch (property_id) {
-    default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-        break;
-    }
-}
+static guint shm_signals[LAST_SIGNAL] = {0};
 
 static void
 gwl_shm_init(GwlShm *self)
@@ -187,13 +153,58 @@ gwl_shm_new(struct wl_shm *shm)
     return g_object_new(GWL_TYPE_SHM, "object", shm, NULL);
 }
 
+/*
+ * Create shm memory file descriptor for sharing memory with the compostitor.
+ */
+static int
+create_shm_fd(guint num_tries)
+{
+    char  random_name[128];
+    guint nth_try = 0;
+    int   fd;
+    do {
+        gint random = g_random_int();
+        g_snprintf(random_name, sizeof(random_name), "/wl-shm-%d", random);
+        fd = shm_open(random_name, O_RDWR | O_CREAT | O_EXCL, 0600);
+        if (fd >= 0) {
+            shm_unlink(random_name);
+            break;
+        }
+    } while (nth_try++ < num_tries && errno == EEXIST);
+
+#ifndef NDEBUG
+    if (fd >= 0)
+        g_info(
+            "Opened posix shared memory object %d - at %s\n", fd, random_name);
+#endif
+    if (fd < 0)
+        g_warning("Unable to open shared memory fd");
+
+    return fd;
+}
+
 /** public API **/
 
-/* * Use the shm to bind the globals. * */
+GwlShmPool *
+gwl_shm_create_pool(GwlShm *self, gint size)
+{
+    g_return_val_if_fail(GWL_IS_SHM(self), NULL);
+    g_return_val_if_fail(size > 0, NULL);
+
+    int fd = create_shm_fd(100);
+
+    struct wl_shm_pool *pool = wl_shm_create_pool(
+        (struct wl_shm *) gwl_object_get(GWL_OBJECT(self)), fd, size);
+
+    return gwl_shm_pool_new(pool, size);
+}
+
+/** raw event handling from the compositor **/
 
 static void
-event_shm_format(GwlShm *self, struct wl_shm *shm, uint32_t format)
+event_shm_format(void *data, struct wl_shm *shm, uint32_t format)
 {
+    GwlShm *self = data;
     g_return_if_fail(GWL_IS_SHM(self));
     (void) shm;
 

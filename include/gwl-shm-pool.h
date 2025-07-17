@@ -28,26 +28,31 @@
 
 G_BEGIN_DECLS
 
-#define GWL_TYPE_SHM gwl_shm_get_type()
+#define GWL_TYPE_SHM_POOL gwl_shm_pool_get_type()
 GWL_PUBLIC
-G_DECLARE_DERIVABLE_TYPE(GwlShm, gwl_shm, GWL, SHM, GwlObject)
+G_DECLARE_DERIVABLE_TYPE(GwlShmPool, gwl_shm_pool, GWL, SHM_POOL, GwlObject)
 
-struct _GwlShmClass {
+struct _GwlShmPoolClass {
     GwlObjectClass parent_class;
-
-    void (*format)(GwlShm *self, GwlShmFormat format);
 
     gpointer padding[16];
 };
 
-GWL_PUBLIC GwlShmPool *
-gwl_shm_create_pool(GwlShm *self, gint size);
+void
+gwl_shm_memory_set_size(GwlShmPool *self, gint size);
 
-GWL_PUBLIC GwlShmPool *
-gwl_shm_pool_new_full(GwlShm      *self,
-                      gint         width,
-                      gint         height,
-                      GwlShmFormat format,
-                      gint         num_frames);
+// Temporary until GwlBuffer is implemented
+typedef struct GwlBuffer GwlBuffer;
+
+GwlBuffer *
+gwl_shm_pool_get_buffer(GwlShmPool  *self,
+                        gint         offset,
+                        gint         width,
+                        gint         height,
+                        gint         stride,
+                        GwlShmFormat format);
+
+void
+gwl_shm_pool_resize(GwlShmPool *self, gint new_size, GError **error);
 
 G_END_DECLS
